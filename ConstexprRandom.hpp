@@ -22,7 +22,7 @@ namespace detail{
 			if(c==0)
 				break;
 			hash *= prime;
-			hash += c&0xff;
+			hash += (c&0xff)*53703548477009;
 		}
 		return hash;
 	}
