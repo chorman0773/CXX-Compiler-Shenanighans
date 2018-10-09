@@ -9,21 +9,27 @@
 #define __CONSTEXPRRANDOM_HPP__2018_10_02_20_27_49
 #include <string>
 #include <lclib-cxx/CppHelpers.hpp>
+#include <lclib-cxx/Config.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <Maths.hpp>
 namespace detail{
 	template<std::size_t N> constexpr uint64_t hash(const char(&str)[N]){
-		char nhash[25];
-		uint64_t hash{15250827463389383777};
-		const uint64_t prime{2683043564619300371};
-		nameHash(str,nhash);
-		for(char c:nhash){
+		uint64_t hash{15250827463389383777uLL};
+		const uint64_t prime{2683043564619300371uLL};
+		for(char c:str){
 			if(c==0)
 				break;
 			hash *= prime;
-			hash += (c&0xff)*53703548477009;
+			hash += (c&0xff)*53703548477009uLL;
 		}
+		return hash;
+	}
+	constexpr uint64_t hash(uint64_t u){
+		uint64_t hash{15250827463389383777uLL};
+		const uint64_t prime{2683043564619300371uLL};
+		for(int i = 0;i<8;i++)
+			(hash*=prime,hash+=u*53703548477009uLL,u>>8);
 		return hash;
 	}
 	constexpr uint64_t initRandomizeSeed(uint64_t seed){
@@ -31,7 +37,30 @@ namespace detail{
 	}
 }
 #define STRINGIFY(...) #__VA_ARGS__
-#define genConstexprSeed() detail::hash(__FILE__ __DATE__ __TIME__ STRINGIFY(__LINE__))
+#ifndef __RAND
+#define genConstexprSeed(...)\
+	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
+		+detail::hash(__LINE__)+detail::hash(STRINGIFY(__VA_ARGS__))\
+		+detail::hash(__cplusplus)\
+		+detail::hash(STRINGIFY(__TIMESTAMP__))
+#else
+#ifndef __TS
+#define genConstexprSeed(...)\
+	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
+		+detail::hash(__LINE__)+detail::hash(STRINGIFY(__VA_ARGS__))\
+		+detail::hash(__cplusplus)\
+		+detail::hash(STRINGIFY(__TIMESTAMP__))\
+		+detail::hash(STRINGIFY(__RAND))
+#else
+#define genConstexprSeed(...)\
+	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
+		+detail::hash(__LINE__)+detail::hash(STRINGIFY(__VA_ARGS__))\
+		+detail::hash(__cplusplus)\
+		+detail::hash(STRINGIFY(__TIMESTAMP__))\
+		+detail::hash(STRINGIFY(__RAND))\
+		+detail::hash(__TS)
+#endif
+#endif
 
 
 class ConstexprRandom{
@@ -60,7 +89,7 @@ public:
 		if ((bound & -bound) == bound)  // i.e., bound is a power of 2
 			return (int)((bound * (uint64_t)next(31)) >> 31);
 
-		int bits, val;
+		int bits{0}, val{0};
 		do {
 			bits = next(31);
 			val = bits % bound;
@@ -68,23 +97,23 @@ public:
 			return val;
 	}
 	constexpr int64_t nextLong(){
-		return nextInt()<<32L|nextInt();
+		return next(32)<<32LL|next(32);
 	}
 	constexpr float nextFloat(){
 		return  next(24) / ((float)(1 << 24));
 	}
 	constexpr double nextDouble(){
-		return ((uint64_t)next(26) << 27 + next(27))/((double)(1L << 53));
+		return ((next(26) << 27uLL) + next(27))/((double)(1L << 53));
 	}
 	constexpr bool nextBoolean(){
 		return next(1)!=0;
 	}
-	constexpr double nextGuassian(){
+	constexpr double nextGaussian(){
 		if (haveNextNextGaussian) {
 				haveNextNextGaussian = false;
 				return nextNextGaussian;
 		} else {
-			double v1, v2, s;
+			double v1{0.0}, v2{0.0}, s{0.0};
 			do {
 				v1 = 2 * nextDouble() - 1;   // between -1.0 and 1.0
 				v2 = 2 * nextDouble() - 1;   // between -1.0 and 1.0

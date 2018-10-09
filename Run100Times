@@ -1,0 +1,13 @@
+#!/bin/bash
+success_count=0
+fail_count=0
+for i in `seq 1 100`
+do
+if g++ -std=c++2a -D__TS=$(date +%s%3N) -D__RAND=$(cat /dev/urandom | head -c 32 | base64) -I./ -w ConstexprRandomTest.cpp && ./a.out 
+then success_count=$(($success_count+1))
+else fail_count=$(($fail_count+1))
+fi
+done
+
+echo "Completely compiled $success_count times"
+echo "Failed to compile $fail_count times"
