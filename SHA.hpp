@@ -228,6 +228,8 @@ namespace detail{
 			for(std::size_t n =0;n<8;n++)
 				h[n] = h[n]^0xa5a5a5a5a5a5a5a5;
 			SHA2_2(in, h);
+			for(std::size_t n = 0;n<8;n++)
+				out[n] = h[n];
 		}
 }
 

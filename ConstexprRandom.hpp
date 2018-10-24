@@ -8,11 +8,19 @@
 #ifndef __CONSTEXPRRANDOM_HPP__2018_10_02_20_27_49
 #define __CONSTEXPRRANDOM_HPP__2018_10_02_20_27_49
 #include <string>
-#include <lclib-cxx/CppHelpers.hpp>
 #include <lclib-cxx/Config.hpp>
+#include <lclib-cxx/TypeTraits.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <Maths.hpp>
+#include <algorithm>
+
+#ifndef __TS
+#define __TS 1539121689889
+#endif
+#ifndef __RAND
+#define __RAND sg53xnlYdLT2J/sbFkNvM4ekbtzMe96MyXHKlRLAAXw=
+#endif
 namespace detail{
 	template<std::size_t N> constexpr uint64_t hash(const char(&str)[N]){
 		uint64_t hash{15250827463389383777uLL};
@@ -21,7 +29,7 @@ namespace detail{
 			if(c==0)
 				break;
 			hash *= prime;
-			hash += (c&0xff)*53703548477009uLL;
+			hash += (static_cast<uint64_t>(c)&0xff)*53703548477009uLL;
 		}
 		return hash;
 	}
@@ -36,30 +44,26 @@ namespace detail{
 		return (seed ^ 0x5DEECE66DL) & ((1L << 48) - 1);
 	}
 }
-#define STRINGIFY(...) #__VA_ARGS__
-#ifndef __RAND
-#define genConstexprSeed(...)\
+#define STRINGIFY0(...) #__VA_ARGS__
+#define STRINGIFY(...) STRINGIFY0(__VA_ARGS__)
+#define EXPAND(...) __VA_ARGS__
+#ifndef __COUNTER__
+#define genConstexprSeed()\
 	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
-		+detail::hash(__LINE__)+detail::hash(STRINGIFY(__VA_ARGS__))\
+		+detail::hash(__LINE__)\
 		+detail::hash(__cplusplus)\
-		+detail::hash(STRINGIFY(__TIMESTAMP__))
-#else
-#ifndef __TS
-#define genConstexprSeed(...)\
-	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
-		+detail::hash(__LINE__)+detail::hash(STRINGIFY(__VA_ARGS__))\
-		+detail::hash(__cplusplus)\
-		+detail::hash(STRINGIFY(__TIMESTAMP__))\
-		+detail::hash(STRINGIFY(__RAND))
-#else
-#define genConstexprSeed(...)\
-	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
-		+detail::hash(__LINE__)+detail::hash(STRINGIFY(__VA_ARGS__))\
-		+detail::hash(__cplusplus)\
-		+detail::hash(STRINGIFY(__TIMESTAMP__))\
+		+detail::hash(__TIMESTAMP__)\
 		+detail::hash(STRINGIFY(__RAND))\
 		+detail::hash(__TS)
-#endif
+#else
+#define genConstexprSeed()\
+	detail::hash(__FILE__ " " __DATE__ " " __TIME__ )\
+		+detail::hash(__LINE__)\
+		+detail::hash(__cplusplus)\
+		+detail::hash(__TIMESTAMP__)\
+		+detail::hash(STRINGIFY(__RAND))\
+		+detail::hash(__TS)\
+		+detail::hash(__COUNTER__)
 #endif
 
 
@@ -124,6 +128,12 @@ public:
 			haveNextNextGaussian = true;
 			return v1 * multiplier;
 		}
+	}
+	template<typename Byte,std::size_t N,typename=std::enable_if_t<is_byte_v<Byte>>> constexpr void nextBytes(Byte(&arr)[N]){
+		for (int i = 0; i < N; )
+			for (int rnd = nextInt(), n = std::min<std::size_t>(N - i, 4);
+				  n-- > 0; rnd >>= 8)
+				 arr[i++] = (char)rnd;
 	}
 };
 

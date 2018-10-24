@@ -33,9 +33,17 @@ constexpr double abs(double d){
 	return d*sign(d);
 }
 
+/**
+ * Computes i^j.
+ * Complexity:
+ * Guaranteed O(n) for n==abs(j)
+ * If i==0, i==1, or i==-1, j==0, or j==1 then Guarantees O(1)
+ */
 constexpr double pow(double i,long long j){
-	if(i==-1&&j>=0)
-		return j%2?-1:1;
+	if(i==-1)
+		return abs(j)%2?-1:1;
+	else if(i==1||i==0)
+		return i;
 	else if(j==1)
 		return i;
 	else if(j==0)
@@ -44,7 +52,6 @@ constexpr double pow(double i,long long j){
 		return 1/pow(i,-j);
 	else
 		return i*pow(i,j-1);
-
 }
 
 template<typename T> struct max_fact{};
@@ -86,6 +93,12 @@ constexpr unsigned long long factn[11] = {
 		40320,362880,3628800
 };
 
+/**
+ * Computes d!.
+ * Complexity:
+ * Guarantees O(n) for n==d
+ * Additionally, if d<11, Guarantees O(1)
+ */
 template<typename T,typename=std::enable_if_t<std::is_integral<T>::value>> constexpr T fact(T d){
 	if(d<0)
 		throw "Negative Factorial";
@@ -102,6 +115,13 @@ template<typename T,typename=std::enable_if_t<std::is_integral<T>::value>> const
 		return result;
 	}
 }
+/**
+ * Computes d!.
+ * d must be a positive integer or 0.
+ * Complexity:
+ * Guarantees O(n) for n=d
+ * Additionally, If d<11, Guarantees O(1)
+ */
 constexpr double fact(double d){
 	if(d<0)
 		throw "Negative Factorial (use gamma(d+1) instead)";
@@ -122,16 +142,61 @@ constexpr double fact(double d){
 }
 
 
+/**
+ * Efficient way of computing (x^n)/n!
+ *  (used by Taylor Series for sin(x), cos(x), sinh(x), cosh(x), and exp(x))
+ * Global rather than detail because it can be useful.
+ * Complexity:
+ * Guaranteed O(n) for n=i
+ * In addition, may be O(1) for i<14.
+ * Guaranteed to be O(1) for i<2
+ */
+constexpr double pow_over_fact(double v,unsigned long long i){
+	switch(i){
+	case 0:  return 1;
+	case 1:  return v;
+	case 2:  return v*v/2.0;
+	case 3:  return v*v*v/6.0;
+	case 4:  return v*v*v*v/24.0;
+	case 5:  return v*v*v*v*v/120.0;
+	case 6:  return v*v*v*v*v*v/720.0;
+	case 7:  return v*v*v*v*v*v*v/5040.0;
+	case 8:  return v*v*v*v*v*v*v*v/40320.0;
+	case 9:  return v*v*v*v*v*v*v*v*v/362880.0;
+	case 10: return v*v*v*v*v*v*v*v*v*v/3628800.0;
+	case 11: return v*v*v*v*v*v*v*v*v*v*v/39916800.0;
+	case 12: return v*v*v*v*v*v*v*v*v*v*v*v/479001600.0;
+	case 13: return v*v*v*v*v*v*v*v*v*v*v*v*v/6227020800.0;
+	case 14: return v*v*v*v*v*v*v*v*v*v*v*v*v*v/87178291200.0;
+	default: return pow_over_fact(v,i-1)*v/i;
+	}
+}
 
 
+
+/**
+ * Computes e^j.
+ * Complexity:
+ *  O(1) always
+ * Taylor Series:
+ * 	20 O(n)
+ */
 constexpr double exp(double j){
-	double res = 1;
-	for(double n =1;n<=max_fact_v<unsigned long long>;n++)
-		res += pow(j,(unsigned long long)n)/fact(n);
-	return res;
+	double ret{1+j};
+	for(unsigned long long l=2;l<max_fact_v<unsigned long long>;l++)
+		ret += pow_over_fact(j, l);
+	return ret;
 }
 constexpr const double e = exp(1);
 
+/**
+ * Computes ln(d) in at most O(log{2}(d))
+ * Terrible, don't use
+ * Complexity:
+ * 	O(log{2}(n)) for n==d
+ * Taylor Series:
+ * 	300 O(n)
+ */
 constexpr double log(double d){
 	double res = 0;
 	if(d==1)
@@ -149,14 +214,19 @@ constexpr double log(double d){
 			d*=2;
 			res -= ln2;
 		}
-	else while(d>=2){
+	else while(d>2){
 		d/=2;
 		res +=ln2;
 	}
+	if(d==1)
+		return res;
+	else if(d==2)
+		return res+ln2;
 	for(unsigned long n=1;n<=300;n++)
 		res+=pow(-1,n+1)*pow(d-1,n)/n;
 	return res;
 }
+
 
 constexpr double sqrt(double d){
 	if(d==1)
@@ -191,6 +261,15 @@ constexpr double sqrt(double d){
 		return exp(log(d)/2);
 }
 
+/**
+ * Computes sin(d).
+ * Complexity:
+ * 	O(n).
+ * 	In addition, if 0<=d<=2π, O(1)
+ * Taylor Series:
+ * 	20 O(n)
+ * 	If d = kπ/6 for k ∈ ℤ, 1 O(1)
+ */
 constexpr double sin(double d){
 	while(d<0)
 		d+=2*PI;
@@ -211,11 +290,20 @@ constexpr double sin(double d){
 	else if(d==PI/4)
 		return sqrt2/2;
 	double res = 0;
-	for(double n=0;(2*n+1)<=max_fact_v<unsigned long long>;n++)
-		res += pow(-1,n)*pow(d,2*n+1)/fact(2*n+1);
+	for(unsigned long long n=0;n<=max_fact_v<unsigned long long>;n++)
+		res += pow(-1,n)*pow_over_fact(d, (2*n+1));
 	return res;
 }
 
+/**
+ * Computes cos(d).
+ * Complexity:
+ * 	O(n).
+ * 	In addition, if 0<=d<=2π, O(1)
+ * Taylor Series:
+ * 	20 O(n)
+ * 	If d = kπ/6 for k ∈ ℤ, 1 O(1)
+ */
 constexpr double cos(double t){
 	while(t<0)
 		t+=2*PI;
@@ -236,67 +324,144 @@ constexpr double cos(double t){
 	else if(t==PI/4)
 		return sqrt2/2;
 	double res =0;
-	for(double n =0;2*n<max_fact_v<unsigned long long>;n++)
-		res += pow(-1,n)*pow(t,2*n)/fact(2*n);
+	for(unsigned long long n =0;n<max_fact_v<unsigned long long>;n++)
+		res += pow(-1,n)*pow_over_fact(t, 2*n);
 	return res;
 }
 
+/**
+ * Computes Hyperbolic sin(d).
+ * Complexity:
+ * 	O(n).
+ * 	In addition, if 0<=d<=2π, O(1)
+ * Taylor Series:
+ * 	20 O(n)
+ */
 constexpr double sinh(double t){
 	while(t<0)
 		t+=2*PI;
 	while(t>=2*PI)
 		t-=2*PI;
 	double res = 0;
-	for(double n =0;(2*n+1)<max_fact_v<unsigned long long>;n++)
-		res += pow(t,2*n+1)/fact(2*n+1);
+	for(double n =0;n<max_fact_v<unsigned long long>;n++)
+		res += pow_over_fact(t,2*n+1);
 	return res;
 }
+/**
+ * Computes Hyperbolic sin(d).
+ * Complexity:
+ * 	O(n).
+ * 	In addition, if 0<=d<=2π, O(1)
+ * Taylor Series:
+ * 	20 O(n)
+ */
 constexpr double cosh(double t){
 	while(t<0)
 		t+=2*PI;
 	while(t>=2*PI)
 		t-=2*PI;
 	double res = 0;
-	for(double n =0;(2*n)<max_fact_v<unsigned long long>;n++)
-		res += pow(t,2*n)/fact(2*n);
+	for(double n =0;n<max_fact_v<unsigned long long>;n++)
+		res += pow_over_fact(t,2*n);
 	return res;
 }
 
+/**
+ * Computes sec(t)
+ * Inverse of cos(t).
+ * Same Complexity Guarantee as cos(t)
+ */
 constexpr double sec(double t){
 	return 1/cos(t);
 }
+/**
+ * Computes Hyperbolic sec(t)
+ * Inverse of cosh(t).
+ * Same Complexity Guarantee as cosh(t)
+ */
 constexpr double sech(double t){
 	return 1/cosh(t);
 }
+/**
+ * Computes csc(t)
+ * Inverse of sin(t).
+ * Same Complexity Guarantee as sin(t)
+ */
 constexpr double csc(double t){
 	return 1/sin(t);
 }
+/**
+ * Computes Hyperbolic csc(t)
+ * Inverse of sinh(t).
+ * Same Complexity Guarantee as sinh(t)
+ */
 constexpr double csch(double t){
 	return 1/sinh(t);
 }
 
+/**
+ * Computes tan(t).
+ * Same complexity as sin(t) and cos(t)
+ */
 constexpr double tan(double t){
 	return sin(t)/cos(t);
 }
+/**
+ * Computes Hyperbolic tan(t)
+ * Same complexity as sinh(t) and cos(t)
+ */
 constexpr double tanh(double t){
 	return sinh(t)/cosh(t);
 }
+/**
+ * Computes cot(t)
+ * Inverse of tan(t)
+ * Same complexity as sin(t) and cos(t)
+ */
 constexpr double cot(double t){
 	return cos(t)/sin(t);
 }
+/**
+ * Computes Hyperbolic cot(t)
+ * Inverse of tanh(t)
+ * Same complexity as sinh(t) and cosh(t)
+ */
 constexpr double coth(double t){
 	return cosh(t)/sinh(t);
 }
 
+
 constexpr double pow(double d,double j){
+	if(d==1||d==0)
+		return d;
 	double res = pow(d,static_cast<long long>(j));
 	j-=static_cast<long long>(j);
 	if(j!=0)
-		res += exp(j*log(d));
+		if(d<0)
+			throw "Root of negative";
+		else
+			res *= exp(j*log(d));
+
 	return res;
 }
+/**
+ * Computes log{2}(n)
+ * Same complexity as log(d)
+ */
 constexpr double log2(double d){
 	return log(d)/ln2;
+}
+
+constexpr double dx = std::numeric_limits<double>::epsilon();
+
+/**
+ * Differentiates a function of x.
+ * Returns a Function that evaluates the derivative of x in the same complexity as f
+ */
+template<typename Fn> constexpr auto differentiate(Fn f){
+	return [f](double x)->decltype(f(x)){
+		return (f(x+dx)-f(x))/dx;
+	};
 }
 
 }
