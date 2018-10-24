@@ -40,8 +40,8 @@ namespace detail{
 		b &=0x1f;
 		return w>>b|w<<(32-b);
 	}
-	template<typename T> constexpr word zero(std::size_t){
-		return 0;
+	template<typename T> constexpr T zero(std::size_t){
+		return T{0};
 	}
 	template<typename T,std::size_t... Is> constexpr std::array<T,sizeof...(Is)> zero(std::index_sequence<Is...>){
 		return {zero<T>(Is)...};
